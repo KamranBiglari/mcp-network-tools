@@ -610,7 +610,7 @@ export class MyMCP extends McpAgent {
 // Helper function to get the base URL from the request
 function getBaseUrl(request: Request): string {
     const url = new URL(request.url);
-    return `${url.protocol}//${url.host}`;
+    return `https://${url.host}`;
 }
 
 // OAuth Authorization Server Discovery Response
