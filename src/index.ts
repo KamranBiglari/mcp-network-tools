@@ -1,31 +1,25 @@
 import { McpAgent } from "agents/mcp";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
-import { whoisAsn, whoisDomain, whoisTld, whoisIp } from 'whoiser';
+import { 
+    domainTool, 
+    tldTool, 
+    asnTool, 
+    ipTool, 
+    nslookupTool, 
+    pingTool, 
+    portscanTool,
+    certificateTool,
+    sslInfoTool,
+    geolocateIpTool,
+    cidrToRangeTool,
+    macLookupTool
+} from './tools';
+import { registerTool } from './tools/registry';
 
-// DNS over HTTPS function for Cloudflare Workers
-async function dnsOverHttps(domain: string, type: string = 'A'): Promise<any> {
-    const dohUrl = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`;
-    
-    const response = await fetch(dohUrl, {
-        headers: {
-            'Accept': 'application/dns-json'
-        }
-    });
-    
-    if (!response.ok) {
-        throw new Error(`DNS query failed: ${response.status} ${response.statusText}`);
-    }
-    
-    return await response.json();
-}
-
-// Type definitions for Cloudflare Workers
+// Type definitions
 interface Env {
     // Add any environment variables here
 }
-
-
 
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
@@ -39,578 +33,29 @@ export class MyMCP extends McpAgent {
     });
 
     async init() {
-
-        // Register domain whois tool
-        this.server.tool(
-            'domain',
-            'Get domain whois information',
-            {
-                domain: z.string().describe("The domain name to query"),
-            },
-            async ( {domain} ) => {
-                try {
-                    const result = await whoisDomain(domain);
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Whois information for domain ${domain}:\n\n${JSON.stringify(result)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error fetching whois information for domain ${domain}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register Tld whois tool
-        this.server.tool(
-            'tld',
-            'Get TLD whois information',
-            {
-                tld: z.string().describe("The top-level domain to query"),
-            },
-            async ( {tld} ) => {
-                try {
-                    const result = await whoisTld(tld);
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Whois information for TLD ${tld}:\n\n${JSON.stringify(result)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error fetching whois information for TLD ${tld}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register ASN whois tool
-        this.server.tool(
-            'asn',
-            'Get ASN whois information',
-            {
-                asn: z.string()
-                .regex(/^(AS)?\d+$/i, "ASN must be in the format AS12345 or 12345")
-                .transform((val) => parseInt(val.slice(2), 10)) // Remove 'AS' prefix if present and convert to number
-                .describe("The ASN to query, e.g. AS12345 or 12345"),
-            },
-            async ( {asn} ) => {
-                try {
-                    const result = await whoisAsn(asn);
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Whois information for ASN ${asn}:\n\n${JSON.stringify(result)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error fetching whois information for ASN ${asn}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register IP whois tool
-        this.server.tool(
-            'ip',
-            'Get IP whois information',
-            {
-                ip: z.string().ip().describe("The IP address to query"),
-            },
-            async ( {ip} ) => {
-                try {
-                    const result = await whoisIp(ip);
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Whois information for IP ${ip}:\n\n${JSON.stringify(result)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error fetching whois information for IP ${ip}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register NSLOOKUP tool
-        this.server.tool(
-            'nslookup',
-            'Get NSLOOKUP information',
-            {
-                domain: z.string().describe("The domain to query"),
-                type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT']).optional().default('A')
-                .describe("The type of DNS record to query (default: A)"),
-            },
-            async ( {domain, type} ) => {
-                try {
-                    const result = await dnsOverHttps(domain, type);
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `NSLOOKUP information for domain ${domain}:\n\n${JSON.stringify(result, null, 2)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error fetching NSLOOKUP information for domain ${domain}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register PING tool
-        this.server.tool(
-            'ping',
-            'Test connectivity to a host',
-            {
-                host: z.string().describe("The hostname or IP address to ping"),
-                count: z.number().optional().default(4).describe("Number of ping packets to send")
-            },
-            async ({ host, count }) => {
-                // Implementation using HTTP requests to simulate ping
-                try {
-                    const results = [];
-                    for (let i = 0; i < count; i++) {
-                        const start = Date.now();
-                        await fetch(`https://${host}`, { method: 'HEAD', mode: 'no-cors' });
-                        const end = Date.now();
-                        results.push({ 
-                            packet: i + 1, 
-                            time: end - start 
-                        });
-                    }
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Ping results for ${host}:\n\n${JSON.stringify(results, null, 2)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error pinging host ${host}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register PORTSCAN tool
-        this.server.tool(
-            'portscan',
-            'Check if specific ports are open on a host',
-            {
-                host: z.string().describe("The hostname or IP address to scan"),
-                ports: z.array(z.number()).describe("Array of port numbers to check"),
-                timeout: z.number().optional().default(5000).describe("Timeout in milliseconds")
-            },
-            async ({ host, ports, timeout }) => {
-                // Implementation using fetch with timeouts
-                try {
-                    const results = await Promise.all(
-                        ports.map(async (port) => {
-                            const controller = new AbortController();
-                            const id = setTimeout(() => controller.abort(), timeout);
-                            try {
-                                await fetch(`https://${host}`, { method: 'HEAD', mode: 'no-cors', signal: controller.signal });
-                                return { port, open: true };
-                            } catch (err) {
-                                if (err.name === 'AbortError') {
-                                    return { port, open: false, error: 'timeout' };
-                                }
-                                return { port, open: false, error: err.message };
-                            } finally {
-                                clearTimeout(id);
-                            }
-                        })
-                    );
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Port scan results for ${host}:\n\n${JSON.stringify(results, null, 2)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error performing port scan on ${host}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register TRACEROUTE tool
-        this.server.tool(
-            'traceroute',
-            'Trace the network path to a destination',
-            {
-                destination: z.string().describe("The destination hostname or IP address"),
-                maxHops: z.number().optional().default(30).describe("Maximum number of hops")
-            },
-            async ({ destination, maxHops }) => {
-                try {
-                    // Simulate traceroute by making HTTP requests with increasing TTL
-                    const hops = [];
-                    for (let ttl = 1; ttl <= maxHops; ttl++) {
-                        try {
-                            const start = Date.now();
-                            await fetch(`https://${destination}`, { 
-                                method: 'HEAD',
-                                headers: { 'Max-Forwards': ttl.toString() }
-                            });
-                            const end = Date.now();
-                            
-                            hops.push({
-                                hop: ttl,
-                                time: end - start,
-                                status: 'reached'
-                            });
-                            
-                            // If we successfully reached the destination, stop
-                            if (ttl > 1) break;
-                        } catch (err) {
-                            hops.push({
-                                hop: ttl,
-                                status: 'timeout',
-                                error: err.message
-                            });
-                        }
-                    }
-                    
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `Traceroute results for ${destination}:\n\n${JSON.stringify(hops, null, 2)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error performing traceroute to ${destination}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register REVERSE-DNS tool
-        this.server.tool(
-            'reverse-dns',
-            'Perform reverse DNS lookup for an IP address',
-            {
-                ip: z.string().ip().describe("The IP address for reverse lookup")
-            },
-            async ({ ip }) => {
-                return await dnsOverHttps(ip.split('.').reverse().join('.') + '.in-addr.arpa', 'PTR');
-            }
-        );
-
-        // Register DNS-ZONE-INFO tool
-        this.server.tool(
-            'dns-zone-info',
-            'Get comprehensive DNS zone information',
-            {
-                domain: z.string().describe("The domain to analyze"),
-                includeSubdomains: z.boolean().optional().default(false).describe("Include common subdomains")
-            },
-            async ({ domain, includeSubdomains }) => {
-                // Query multiple DNS record types and analyze zone structure
-            }
-        );
-
-        // Register SSL/TLS INFO tool
-        this.server.tool(
-            'ssl-info',
-            'Get SSL/TLS certificate information for a domain',
-            {
-                domain: z.string().describe("The domain to check SSL certificate"),
-                port: z.number().optional().default(443).describe("Port number (default: 443)")
-            },
-            async ({ domain, port }) => {
-                try {
-                    // Use fetch to get basic certificate info
-                    const response = await fetch(`https://${domain}:${port}`, {
-                        method: 'HEAD',
-                    });
-                    
-                    // Extract security details from headers
-                    const headers = Object.fromEntries(response.headers.entries());
-                    
-                    // Get the certificate info from the response
-                    const connectionInfo = {
-                        status: response.status,
-                        statusText: response.statusText,
-                        headers: headers,
-                        protocol: response.url.split(':')[0],
-                        securityDetails: {
-                            secure: response.url.startsWith('https'),
-                            host: domain,
-                            port: port
-                        }
-                    };
-                    
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `SSL/TLS information for ${domain}:${port}:\n\n${JSON.stringify(connectionInfo, null, 2)}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error fetching SSL/TLS information for ${domain}:${port}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register SECURITY-HEADERS tool
-        this.server.tool(
-            'security-headers',
-            'Check HTTP security headers for a website',
-            {
-                url: z.string().url().describe("The URL to check security headers")
-            },
-            async ({ url }) => {
-                const response = await fetch(url, { method: 'HEAD' });
-                const headers = Object.fromEntries(response.headers.entries());
-                // Analyze security headers like HSTS, CSP, X-Frame-Options, etc.
-            }
-        );
-
-        // Register GEOLocate IP tool
-        this.server.tool(
-            'geolocate-ip',
-            'Get geographical location information for an IP address',
-            {
-                ip: z.string().ip().describe("The IP address to geolocate")
-            },
-            async ({ ip }) => {
-                // Use a free geolocation API like ipapi.co or ip-api.com
-                const response = await fetch(`http://ip-api.com/json/${ip}`);
-                return {
-                    content: [{
-                        type: "text",
-                        text: `Geolocation information for IP ${ip}:\n\n${JSON.stringify(await response.json(), null, 2)}`
-                    }]
-                }
-            }
-        );
-
-        // Register DOMAIN-HISTORY tool
-        this.server.tool(
-            'domain-history',
-            'Get historical DNS records and changes for a domain',
-            {
-                domain: z.string().describe("The domain to check history"),
-                days: z.number().optional().default(30).describe("Number of days to look back")
-            },
-            async ({ domain, days }) => {
-                // Implementation would require integration with services like SecurityTrails API
-            }
-        );
-
-        // Register SUBDOMAINS tool
-        this.server.tool(
-            'subdomains',
-            'Find subdomains for a given domain',
-            {
-                domain: z.string().describe("The domain to find subdomains for"),
-                limit: z.number().optional().default(50).describe("Maximum number of subdomains to return")
-            },
-            async ({ domain, limit }) => {
-                // Check common subdomain patterns and certificate transparency logs
-            }
-        );
-
-        // Register REPUTATION tool
-        this.server.tool(
-            'reputation',
-            'Check domain/IP reputation against threat intelligence feeds',
-            {
-                target: z.string().describe("Domain or IP address to check"),
-                type: z.enum(['domain', 'ip']).describe("Type of target")
-            },
-            async ({ target, type }) => {
-                // Integration with public threat intelligence APIs
-            }
-        );
-
-        // Register CIDR to Range tool
-        this.server.tool(
-            'cidr-to-range',
-            'Convert CIDR notation to IP range',
-            {
-                cidr: z.string().describe("CIDR notation (e.g., 192.168.1.0/24)")
-            },
-            async ({ cidr }) => {
-                try {
-                    // Split the CIDR notation
-                    const [ipPart, prefixPart] = cidr.split('/');
-                    const prefix = parseInt(prefixPart);
-                    
-                    if (isNaN(prefix) || prefix < 0 || prefix > 32) {
-                        throw new Error("Invalid CIDR prefix. Must be between 0 and 32.");
-                    }
-                    
-                    // Convert IP to binary
-                    const ipOctets = ipPart.split('.').map(Number);
-                    if (ipOctets.length !== 4 || ipOctets.some(octet => isNaN(octet) || octet < 0 || octet > 255)) {
-                        throw new Error("Invalid IP address format.");
-                    }
-                    
-                    // Calculate subnet mask
-                    const subnetMask = (0xFFFFFFFF << (32 - prefix)) >>> 0;
-                    
-                    // Calculate network address (first IP)
-                    const ipNum = (ipOctets[0] << 24) + (ipOctets[1] << 16) + (ipOctets[2] << 8) + ipOctets[3];
-                    const networkNum = ipNum & subnetMask;
-                    
-                    // Calculate broadcast address (last IP)
-                    const broadcastNum = networkNum | (~subnetMask >>> 0);
-                    
-                    // Convert back to readable IP format
-                    const firstIP = [
-                        (networkNum >> 24) & 0xFF,
-                        (networkNum >> 16) & 0xFF,
-                        (networkNum >> 8) & 0xFF,
-                        networkNum & 0xFF
-                    ].join('.');
-                    
-                    const lastIP = [
-                        (broadcastNum >> 24) & 0xFF,
-                        (broadcastNum >> 16) & 0xFF,
-                        (broadcastNum >> 8) & 0xFF,
-                        broadcastNum & 0xFF
-                    ].join('.');
-                    
-                    // Calculate total number of addresses
-                    const numAddresses = broadcastNum - networkNum + 1;
-                    
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `CIDR to Range conversion for ${cidr}:\n\nFirst IP: ${firstIP}\nLast IP: ${lastIP}\nTotal addresses: ${numAddresses}`
-                        }]
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error converting CIDR ${cidr} to range: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
-
-        // Register MAC-LOOKUP tool
-        this.server.tool(
-            'mac-lookup',
-            'Look up MAC address vendor information',
-            {
-                mac: z.string().describe("MAC address to lookup")
-            },
-            async ({ mac }) => {
-                try {
-                    // Use IEEE OUI database or API
-                    if (!/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(mac)) {
-                        throw new Error("Invalid MAC address format. Use XX:XX:XX:XX:XX:XX or XX-XX-XX-XX-XX-XX.");
-                    }
-                    
-                    const macPrefix = mac.toUpperCase().replace(/[:-]/g, '').slice(0, 6);
-                    try {
-                        // First try using the macvendors API
-                        const response = await fetch(`https://api.macvendors.com/${macPrefix}`);
-                        if (response.ok) {
-                            const vendorInfo = await response.text();
-                            return { 
-                                content:[{
-                                    type: "text",
-                                    text: `Vendor information for MAC ${mac}:\n\n${vendorInfo}`
-                                }]
-                            };
-                        }
-                    } catch (apiError) {
-                        // API call failed, continue to fallback
-                        console.error("MAC vendor API failed:", apiError);
-                    }
-                    
-                    // Fallback: Provide generic information since we can't access local files in Cloudflare Workers
-                    return { 
-                        content:[{
-                            type: "text",
-                            text: `MAC address ${mac} has prefix ${macPrefix}. No vendor information could be retrieved from the API. Fallback database access is not available in this environment.`
-                        }],
-                        isError: true
-                    };
-                } catch (err: unknown) {
-                    const error = err as Error;
-                    return { 
-                        content: [{
-                            type: "text",
-                            text: `Error looking up MAC address ${mac}: ${error.message}`
-                        }],
-                        isError: true
-                    };
-                }
-            }
-        );
+        // Register all tools using the new modular structure
+        registerTool(this.server, domainTool);
+        registerTool(this.server, tldTool);
+        registerTool(this.server, asnTool);
+        registerTool(this.server, ipTool);
+        registerTool(this.server, nslookupTool);
+        registerTool(this.server, pingTool);
+        registerTool(this.server, portscanTool);
+        registerTool(this.server, certificateTool);
+        registerTool(this.server, sslInfoTool);
+        registerTool(this.server, geolocateIpTool);
+        registerTool(this.server, cidrToRangeTool);
+        registerTool(this.server, macLookupTool);
+        
+        // Note: Additional tools like traceroute, etc.
+        // can be added here as they are implemented
     }
 }
 
 // Helper function to get the base URL from the request
 function getBaseUrl(request: Request): string {
     const url = new URL(request.url);
-    return `https://${url.host}`;
+    return `http://${url.host}`;
 }
 
 // OAuth Authorization Server Discovery Response
@@ -645,7 +90,7 @@ function createOAuthProtectedResourceResponse(baseUrl: string) {
         // Indicate no authentication required
         "authless": true,
         "require_authentication": false,
-        "token_validation": "none"
+        "token_validation": "none",
     };
 }
 
@@ -670,12 +115,12 @@ function createClientRegistrationResponse() {
         "token_endpoint_auth_method": "none",
         "grant_types": ["authorization_code", "client_credentials"],
         "response_types": ["code"],
-        "scope": "read write"
+        "scope": "read write",
     };
 }
 
 export default {
-    fetch(request: Request, env: Env, ctx: ExecutionContext) {
+    async fetch(request: Request, env: Env, ctx: ExecutionContext) {
         const url = new URL(request.url);
         const baseUrl = getBaseUrl(request);
 
@@ -711,14 +156,34 @@ export default {
 
         // Mock OAuth Authorization Endpoint
         if (url.pathname === "/oauth/authorize") {
-
-            // redirect to the redirect_uri if provided
             const redirectUri = url.searchParams.get("redirect_uri");
+            const state = url.searchParams.get("state");
+            const clientId = url.searchParams.get("client_id");
+            const responseType = url.searchParams.get("response_type");
+            
             if (redirectUri) {
-                return Response.redirect(redirectUri);
+                // Generate a mock authorization code
+                const authCode = `mock_auth_code_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+                
+                // Build redirect URL with authorization code
+                const redirectUrl = new URL(redirectUri);
+                redirectUrl.searchParams.set("code", authCode);
+                if (state) {
+                    redirectUrl.searchParams.set("state", state);
+                }
+                
+                return Response.redirect(redirectUrl.toString());
             }
+            
+            // If no redirect_uri, return the authorization code directly
+            const authCode = `mock_auth_code_${Date.now()}_${Math.random().toString(36).substring(2)}`;
             return new Response(
-                JSON.stringify(createMockTokenResponse(), null, 2),
+                JSON.stringify({
+                    authorization_code: authCode,
+                    client_id: clientId,
+                    response_type: responseType,
+                    message: "Copy this authorization code and return to the Auth Debugger"
+                }, null, 2),
                 {
                     headers: {
                         "Content-Type": "application/json",
@@ -732,6 +197,42 @@ export default {
 
         // Mock OAuth Token Endpoint
         if (url.pathname === "/oauth/token") {
+            // Handle authorization code exchange
+            if (request.method === "POST") {
+                const formData = await request.formData();
+                const code = formData.get("code");
+                const grantType = formData.get("grant_type");
+                
+                if (grantType === "authorization_code" && code) {
+                    // Validate the authorization code (in a real implementation)
+                    if (code.toString().startsWith("mock_auth_code_")) {
+                        return new Response(
+                            JSON.stringify(createMockTokenResponse(), null, 2),
+                            {
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Access-Control-Allow-Origin": "*",
+                                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                                    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+                                },
+                            }
+                        );
+                    } else {
+                        return new Response(
+                            JSON.stringify({ error: "invalid_grant", error_description: "Invalid authorization code" }, null, 2),
+                            {
+                                status: 400,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Access-Control-Allow-Origin": "*",
+                                },
+                            }
+                        );
+                    }
+                }
+            }
+            
+            // Default token response for other grant types
             return new Response(
                 JSON.stringify(createMockTokenResponse(), null, 2),
                 {
@@ -770,7 +271,7 @@ export default {
                     status: "ok",
                     authless: true,
                     timestamp: new Date().toISOString(),
-                    server: "mcp-whois",
+                    server: "mcp-network-tools",
                 }, null, 2),
                 {
                     headers: {
@@ -785,7 +286,7 @@ export default {
         if (url.pathname === "/") {
             return new Response(
                 JSON.stringify({
-                    name: "mcp-whois",
+                    name: "mcp-network-tools",
                     version: "1.0.0",
                     authless: true,
                     endpoints: {
