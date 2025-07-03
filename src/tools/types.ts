@@ -1,21 +1,28 @@
 import { z } from "zod";
 
-// Content types based on MCP protocol discussion
+// Content types based on current MCP protocol
 export interface TextContent {
-    type?: "text"; // For backwards compatibility
-    mimeType?: string; // Defaults to "text/plain"
+    type: "text";
     text: string;
-    uri?: string; // Optional URI for resource reference
+    mimeType?: string; // Optional MIME type for text content
 }
 
-export interface BlobContent {
-    type?: "blob"; // For backwards compatibility  
+export interface ImageContent {
+    type: "image";
+    data: string; // Base64 encoded
     mimeType: string;
-    blob: string; // Base64 encoded data
-    uri?: string; // Optional URI for resource reference
 }
 
-export type ContentItem = TextContent | BlobContent;
+export interface ResourceContent {
+    type: "resource";
+    resource: {
+        uri: string;
+        mimeType?: string;
+        text?: string; // For text-based resources
+    };
+}
+
+export type ContentItem = TextContent | ImageContent | ResourceContent;
 
 export interface ToolResponse {
     content: Array<ContentItem>;
