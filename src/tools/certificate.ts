@@ -21,39 +21,56 @@ export const certificateTool: ToolDefinition = {
             );
 
             return {
-                content: [{
-                    type: "text",
-                    text: `Self-signed certificate generated successfully for ${commonName}
+                content: [
+                    // Certificate details as text
+                    {
+                        type: "text",
+                        mimeType: "text/markdown",
+                        text: `# Self-signed Certificate Generated Successfully
 
-**Certificate Details:**
-- Common Name: ${commonName}
-- Organization: ${organization}
-- Validity: ${validityDays} days
-- Country: ${country}
+## Certificate Details:
+- **Common Name**: ${commonName}
+- **Organization**: ${organization}
+- **Validity Period**: ${validityDays} days
+- **Country**: ${country}
+- **Generated**: ${new Date().toISOString()}
 
-**Certificate (PEM format):**
-\`\`\`
-${certData.certificate}
-\`\`\`
+## Files Generated:
+1. **${commonName.replace(/[^a-z0-9]/gi, '_')}.crt** - Certificate file
+2. **${commonName.replace(/[^a-z0-9]/gi, '_')}.key** - Private key file  
+3. **${commonName.replace(/[^a-z0-9]/gi, '_')}.pub** - Public key file
 
-**Private Key (PEM format):**
-\`\`\`
-${certData.privateKey}
-\`\`\`
+## Usage Instructions:
+1. Save each file with the suggested filename
+2. Keep the private key (*.key) secure and never share it
+3. For web servers, configure both the certificate and private key files in your SSL/TLS settings
+4. The public key file is provided for reference and verification
 
-**Public Key (PEM format):**
-\`\`\`
-${certData.publicKey}
-\`\`\`
-
-**Usage Instructions:**
-1. Save the certificate to a .crt or .pem file
-2. Save the private key to a .key file  
-3. Keep the private key secure and never share it
-4. For web servers, configure both files in your SSL/TLS settings
-
-**Note:** This is a self-signed certificate. For production use, obtain certificates from a trusted Certificate Authority (CA).`
-                }]
+## Security Note:
+⚠️ This is a self-signed certificate. For production use, obtain certificates from a trusted Certificate Authority (CA).`
+                    },
+                    // Certificate file
+                    {
+                        type: "blob",
+                        mimeType: "application/x-pem-file",
+                        blob: btoa(certData.certificate),
+                        uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.crt`
+                    },
+                    // Private key file
+                    {
+                        type: "blob", 
+                        mimeType: "application/x-pem-file",
+                        blob: btoa(certData.privateKey),
+                        uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.key`
+                    },
+                    // Public key file
+                    {
+                        type: "blob",
+                        mimeType: "application/x-pem-file", 
+                        blob: btoa(certData.publicKey),
+                        uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.pub`
+                    }
+                ]
             };
         } catch (error) {
             return {
