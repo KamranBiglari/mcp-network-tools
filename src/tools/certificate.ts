@@ -48,31 +48,31 @@ export const certificateTool: ToolDefinition = {
 ## Security Note:
 ⚠️ This is a self-signed certificate. For production use, obtain certificates from a trusted Certificate Authority (CA).`
                     },
-                    // Certificate file as resource
+                    // Certificate file as resource (as blob for download)
                     {
                         type: "resource",
                         resource: {
-                            uri: `data:application/x-pem-file;base64,${btoa(certData.certificate)}`,
-                            mimeType: "application/x-pem-file",
-                            text: certData.certificate
+                            uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.crt`,
+                            mimeType: "application/x-x509-ca-cert",
+                            blob: btoa(certData.certificate)
                         }
                     },
-                    // Private key file as resource
+                    // Private key file as resource (as blob for download)
                     {
                         type: "resource", 
                         resource: {
-                            uri: `data:application/x-pem-file;base64,${btoa(certData.privateKey)}`,
+                            uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.key`,
                             mimeType: "application/x-pem-file",
-                            text: certData.privateKey
+                            blob: btoa(certData.privateKey)
                         }
                     },
-                    // Public key file as resource
+                    // Public key file as resource (as blob for download)
                     {
                         type: "resource",
                         resource: {
-                            uri: `data:application/x-pem-file;base64,${btoa(certData.publicKey)}`,
+                            uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.pub`,
                             mimeType: "application/x-pem-file",
-                            text: certData.publicKey
+                            blob: btoa(certData.publicKey)
                         }
                     }
                 ]
