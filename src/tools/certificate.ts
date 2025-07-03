@@ -5,12 +5,12 @@ import { generateSelfSignedCertificate } from '../utils/certificate';
 export const certificateTool: ToolDefinition = {
     name: 'generate-certificate',
     description: 'Generate a self-signed SSL/TLS certificate',
-    schema: z.object({
+    schema: {
         commonName: z.string().describe("Common Name (CN) for the certificate"),
         organization: z.string().optional().default("My Organization").describe("Organization name"),
         validityDays: z.number().optional().default(365).describe("Validity period in days"),
         country: z.string().optional().default("US").describe("Country code (e.g., US, GB, CA)")
-    }),
+    },
     handler: async ({ commonName, organization, validityDays, country }) => {
         try {
             const certData = generateSelfSignedCertificate(

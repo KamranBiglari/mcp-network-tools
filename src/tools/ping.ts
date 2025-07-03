@@ -4,10 +4,10 @@ import { ToolDefinition } from './types';
 export const pingTool: ToolDefinition = {
     name: 'ping',
     description: 'Test connectivity to a host',
-    schema: z.object({
+    schema: {
         host: z.string().describe("The hostname or IP address to ping"),
         count: z.number().optional().default(4).describe("Number of ping packets to send")
-    }),
+    },
     handler: async ({ host, count }) => {
         // Implementation using HTTP requests to simulate ping
         try {

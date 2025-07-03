@@ -4,9 +4,9 @@ import { ToolDefinition } from './types';
 export const macLookupTool: ToolDefinition = {
     name: 'mac-lookup',
     description: 'Look up MAC address vendor information',
-    schema: z.object({
+    schema: {
         mac: z.string().describe("MAC address to lookup")
-    }),
+    },
     handler: async ({ mac }) => {
         try {
             // Validate MAC address format

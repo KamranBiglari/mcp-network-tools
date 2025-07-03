@@ -4,9 +4,9 @@ import { ToolDefinition } from './types';
 export const cidrToRangeTool: ToolDefinition = {
     name: 'cidr-to-range',
     description: 'Convert CIDR notation to IP range',
-    schema: z.object({
+    schema: {
         cidr: z.string().describe("CIDR notation (e.g., 192.168.1.0/24)")
-    }),
+    },
     handler: async ({ cidr }) => {
         try {
             // Split the CIDR notation
@@ -19,7 +19,7 @@ export const cidrToRangeTool: ToolDefinition = {
             
             // Convert IP to binary
             const ipOctets = ipPart.split('.').map(Number);
-            if (ipOctets.length !== 4 || ipOctets.some(octet => isNaN(octet) || octet < 0 || octet > 255)) {
+            if (ipOctets.length !== 4 || ipOctets.some((octet: number) => isNaN(octet) || octet < 0 || octet > 255)) {
                 throw new Error("Invalid IP address format.");
             }
             

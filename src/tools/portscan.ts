@@ -4,11 +4,11 @@ import { ToolDefinition } from './types';
 export const portscanTool: ToolDefinition = {
     name: 'portscan',
     description: 'Check if specific ports are open on a host',
-    schema: z.object({
+    schema: {
         host: z.string().describe("The hostname or IP address to scan"),
         ports: z.array(z.number()).describe("Array of port numbers to check"),
         timeout: z.number().optional().default(5000).describe("Timeout in milliseconds")
-    }),
+    },
     handler: async ({ host, ports, timeout }) => {
         // Implementation using fetch with timeouts
         try {

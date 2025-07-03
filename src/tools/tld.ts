@@ -5,9 +5,9 @@ import { ToolDefinition } from './types';
 export const tldTool: ToolDefinition = {
     name: 'tld',
     description: 'Get TLD whois information',
-    schema: z.object({
+    schema: {
         tld: z.string().describe("The top-level domain to query"),
-    }),
+    },
     handler: async ({ tld }) => {
         try {
             const result = await whoisTld(tld);

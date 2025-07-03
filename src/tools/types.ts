@@ -11,6 +11,6 @@ export interface ToolResponse {
 export interface ToolDefinition {
     name: string;
     description: string;
-    schema: z.ZodSchema<any>;
+    schema: object;
     handler: (params: any) => Promise<ToolResponse>;
 }

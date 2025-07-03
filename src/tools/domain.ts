@@ -5,9 +5,9 @@ import { ToolDefinition } from './types';
 export const domainTool: ToolDefinition = {
     name: 'domain',
     description: 'Get domain whois information',
-    schema: z.object({
+    schema:{
         domain: z.string().describe("The domain name to query"),
-    }),
+    },
     handler: async ({ domain }) => {
         try {
             const result = await whoisDomain(domain);

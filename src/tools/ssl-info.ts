@@ -4,10 +4,10 @@ import { ToolDefinition } from './types';
 export const sslInfoTool: ToolDefinition = {
     name: 'ssl-info',
     description: 'Get SSL/TLS certificate information for a domain',
-    schema: z.object({
+    schema: {
         domain: z.string().describe("The domain to check SSL certificate"),
         port: z.number().optional().default(443).describe("Port number (default: 443)")
-    }),
+    },
     handler: async ({ domain, port }) => {
         try {
             // Use fetch to get basic certificate info

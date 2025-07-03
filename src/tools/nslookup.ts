@@ -21,11 +21,11 @@ async function dnsOverHttps(domain: string, type: string = 'A'): Promise<any> {
 export const nslookupTool: ToolDefinition = {
     name: 'nslookup',
     description: 'Get NSLOOKUP information',
-    schema: z.object({
+    schema: {
         domain: z.string().describe("The domain to query"),
         type: z.enum(['A', 'AAAA', 'CNAME', 'MX', 'NS', 'TXT']).optional().default('A')
             .describe("The type of DNS record to query (default: A)"),
-    }),
+    },
     handler: async ({ domain, type }) => {
         try {
             const result = await dnsOverHttps(domain, type);

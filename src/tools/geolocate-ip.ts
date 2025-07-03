@@ -4,9 +4,9 @@ import { ToolDefinition } from './types';
 export const geolocateIpTool: ToolDefinition = {
     name: 'geolocate-ip',
     description: 'Get geographical location information for an IP address',
-    schema: z.object({
+    schema: {
         ip: z.string().ip().describe("The IP address to geolocate")
-    }),
+    },
     handler: async ({ ip }) => {
         try {
             // Use a free geolocation API like ipapi.co or ip-api.com

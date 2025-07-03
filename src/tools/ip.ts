@@ -5,9 +5,9 @@ import { ToolDefinition } from './types';
 export const ipTool: ToolDefinition = {
     name: 'ip',
     description: 'Get IP whois information',
-    schema: z.object({
+    schema: {
         ip: z.string().ip().describe("The IP address to query"),
-    }),
+    },
     handler: async ({ ip }) => {
         try {
             const result = await whoisIp(ip);
