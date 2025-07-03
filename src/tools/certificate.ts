@@ -48,31 +48,31 @@ export const certificateTool: ToolDefinition = {
 ## Security Note:
 ⚠️ This is a self-signed certificate. For production use, obtain certificates from a trusted Certificate Authority (CA).`
                     },
-                    // Certificate file as resource (as blob for download)
+                    // Certificate file as resource (as text for download)
                     {
                         type: "resource",
                         resource: {
                             uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.crt`,
-                            mimeType: "application/x-x509-ca-cert",
-                            blob: btoa(certData.certificate)
+                            mimeType: "text/plain",
+                            text: certData.certificate
                         }
                     },
-                    // Private key file as resource (as blob for download)
+                    // Private key file as resource (as text for download)
                     {
                         type: "resource", 
                         resource: {
                             uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.key`,
-                            mimeType: "application/x-pem-file",
-                            blob: btoa(certData.privateKey)
+                            mimeType: "text/plain",
+                            text: certData.privateKey
                         }
                     },
-                    // Public key file as resource (as blob for download)
+                    // Public key file as resource (as text for download)
                     {
                         type: "resource",
                         resource: {
                             uri: `file://${commonName.replace(/[^a-z0-9]/gi, '_')}.pub`,
-                            mimeType: "application/x-pem-file",
-                            blob: btoa(certData.publicKey)
+                            mimeType: "text/plain",
+                            text: certData.publicKey
                         }
                     }
                 ]
